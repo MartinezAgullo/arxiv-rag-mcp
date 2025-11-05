@@ -19,11 +19,6 @@ class MCPManager:
                 "args": ["tool", "run", "arxiv-mcp-server", "--storage-path", str(config.data_dir / "arxiv_papers")],
                 "env": {"ARXIV_STORAGE_PATH": str(config.data_dir / "arxiv_papers")}
             },
-            "firecrawl": {
-                "command": "npx",
-                "args": ["-y", "firecrawl-mcp"],
-                "env": {"FIRECRAWL_API_KEY": config.firecrawl_api_key}
-            },
             "pinecone": {
                 "command": "npx",
                 "args": ["-y", "@pinecone-database/mcp"],

@@ -58,27 +58,29 @@ class IngestionPipeline:
         return papers
     
     async def process_paper(self, paper: Dict) -> List[Dict]:
-        """Download paper and extract clean text"""
+        """Download paper and extract text using ArXiv MCP"""
         
-        # Get paper URL
-        paper_url = paper.get("pdf_url") or paper.get("url")
+        paper_id = paper.get("id")
         
-        # Use Firecrawl to scrape and clean the content
-        result = await self.mcp.call_tool(
-            "firecrawl",
-            "scrape_url",
-            {
-                "url": paper_url,
-                "formats": ["markdown"],
-                "onlyMainContent": True
-            }
+        # Download the paper using ArXiv MCP
+        await self.mcp.call_tool(
+            "arxiv",
+            "download_paper",
+            {"paper_id": paper_id}
         )
         
-        # Extract clean text
-        clean_text = result.content[0].text if result.content else ""
+        # Read the paper content using ArXiv MCP
+        result = await self.mcp.call_tool(
+            "arxiv",
+            "read_paper",
+            {"paper_id": paper_id}
+        )
+        
+        # Extract text content
+        paper_text = result.content[0].text if result.content else ""
         
         # Chunk the text (simple chunking - 1000 char chunks with 200 overlap)
-        chunks = self._chunk_text(clean_text, chunk_size=1000, overlap=200)
+        chunks = self._chunk_text(paper_text, chunk_size=1000, overlap=200)
         
         # Add metadata to each chunk
         enriched_chunks = []
@@ -86,10 +88,9 @@ class IngestionPipeline:
             enriched_chunks.append({
                 "text": chunk,
                 "metadata": {
-                    "paper_id": paper.get("id"),
+                    "paper_id": paper_id,
                     "title": paper.get("title"),
                     "authors": paper.get("authors"),
-                    "url": paper_url,
                     "chunk_index": i
                 }
             })

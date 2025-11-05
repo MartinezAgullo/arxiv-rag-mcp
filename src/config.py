@@ -10,7 +10,6 @@ class Config:
     
     # API Keys
     openai_api_key: str
-    firecrawl_api_key: str
     pinecone_api_key: str
     notion_token: str
     
@@ -42,10 +41,9 @@ class Config:
         
         return cls(
             openai_api_key=os.getenv("OPENAI_API_KEY"),
-            firecrawl_api_key=os.getenv("FIRECRAWL_API_KEY"),
             pinecone_api_key=os.getenv("PINECONE_API_KEY"),
             notion_token=os.getenv("NOTION_TOKEN"),
-            pinecone_index_name=os.getenv("PINECONE_INDEX_NAME", "arxive-rag"),
+            pinecone_index_name=os.getenv("PINECONE_INDEX_NAME", "arxiv-papers"),
             pinecone_environment=os.getenv("PINECONE_ENVIRONMENT", "us-east-1-aws"),
             notion_database_id=os.getenv("NOTION_DATABASE_ID"),
             search_topic=os.getenv("SEARCH_TOPIC", "Higgs Boson production in association with a single top quark"),

@@ -12,7 +12,7 @@ A containerized agentic pipeline using **Model Context Protocol (MCP)** servers 
 ## 🔧 MCP Servers Used
 
 ### 1. **ArXiv MCP Server**
-Search and download academic papers from ArXiv.
+Search, download, and read academic papers from ArXiv.
 
 ```json
 {
@@ -25,25 +25,7 @@ Search and download academic papers from ArXiv.
 
 ---
 
-### 2. **Firecrawl MCP**
-Web scraping and content extraction from ArXiv URLs.
-
-```json
-{
-  "command": "npx",
-  "args": ["-y", "firecrawl-mcp"],
-  "env": {
-    "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
-  }
-}
-```
-
-**Tools**: `scrape_url`, `crawl`, `search`  
-**API Key**: Get from https://www.firecrawl.dev/app/api-keys
-
----
-
-### 3. **Pinecone MCP**
+### 2. **Pinecone MCP**
 Vector database for semantic search with integrated embeddings.
 
 ```json
@@ -67,7 +49,7 @@ Vector database for semantic search with integrated embeddings.
 
 ---
 
-### 4. **Notion MCP**
+### 3. **Notion MCP**
 Log query interactions to Notion database.
 
 ```json
@@ -90,7 +72,7 @@ Log query interactions to Notion database.
 
 ---
 
-### 5. **Filesystem MCP**
+### 4. **Filesystem MCP**
 Save final outputs locally.
 
 ```json
@@ -110,7 +92,6 @@ Save final outputs locally.
 - Docker & Docker Compose
 - API Keys:
   - OpenAI (GPT-4)
-  - Firecrawl
   - Pinecone
   - Notion integration token
 
@@ -122,7 +103,7 @@ git clone <your-repo-url>
 cd arxiv-rag-mcp
 
 # Create .env file
-cp .env.example .env
+touch .env
 # Edit .env with your API keys
 
 # Create Pinecone index (via web UI):
@@ -169,7 +150,6 @@ Edit `.env` file:
 ```bash
 # Required
 OPENAI_API_KEY=sk-...
-FIRECRAWL_API_KEY=fc-...
 PINECONE_API_KEY=...
 PINECONE_INDEX_NAME=arxiv-papers
 NOTION_TOKEN=ntn_...
@@ -212,16 +192,6 @@ arxiv-rag-mcp/
 
 ## 📝 License
 
-This project is licensed under the **GNU General Public License (GPL) 3.0**.
+This project is licensed under the **MIT License**.
 
 See [LICENSE](LICENSE) file for details.
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! Please feel free to submit issues or pull requests.
-
----
-
-**Built with ❤️ using MCP, GPT-4, Pinecone, and Notion**

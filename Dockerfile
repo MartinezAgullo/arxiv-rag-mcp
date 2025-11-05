@@ -21,7 +21,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install MCP servers via npx (cached for faster rebuilds)
-RUN npx -y firecrawl-mcp --version || true
 RUN npx -y @pinecone-database/mcp --version || true
 RUN npx -y @notionhq/notion-mcp-server --version || true
 RUN npx -y @modelcontextprotocol/server-filesystem --version || true
