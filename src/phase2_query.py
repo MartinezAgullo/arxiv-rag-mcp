@@ -67,16 +67,17 @@ class QueryPipeline:
         ])
         
         # Create prompt
-        prompt = f"""You are a helpful AI assistant that answers questions based on academic papers about {self.config.search_topic}.
+        prompt = f"""
+        You are a helpful AI assistant that answers questions based on academic papers about {self.config.search_topic}.
 
-Use ONLY the context provided below to answer the question. If the context doesn't contain enough information, say so.
+        Use ONLY the context provided below to answer the question. If the context doesn't contain enough information, say so.
 
-CONTEXT:
-{context_text}
+        CONTEXT:
+        {context_text}
 
-QUESTION: {query}
+        QUESTION: {query}
 
-Provide a concise, well-cited answer. Include paper titles when referencing information."""
+        Provide a concise, well-cited answer. Include paper titles when referencing information."""
         
         # Call GPT-4
         response = self.client.chat.completions.create(
@@ -109,7 +110,7 @@ Provide a concise, well-cited answer. Include paper titles when referencing info
                 "parent": {"database_id": self.config.notion_database_id},
                 "properties": {
                     "Query": {"title": [{"text": {"content": query}}]},
-                    "Timestamp": {"date": {"start": datetime.utcnow().isoformat()}},
+                    "Timestamp": {"date": {"start": datetime.now(datetime.UTC).isoformat()}},
                     "Answer": {"rich_text": [{"text": {"content": answer[:2000]}}]},  # Notion limit
                     "Sources": {"rich_text": [{"text": {"content": context_summary}}]}
                 }

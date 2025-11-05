@@ -19,9 +19,10 @@ services:
       - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
       
       # Application Configuration
-      - SEARCH_TOPIC=${SEARCH_TOPIC:-"Large Language Model Reasoning"}
+      - SEARCH_TOPIC=${SEARCH_TOPIC:-"Higgs boson production in association with a single top quark (tH) at the LHC"}
       - MAX_PAPERS=${MAX_PAPERS:-10}
       - PHASE=${PHASE:-"both"}  # ingestion, query, or both
+      - ARXIV_CATEGORIES=${ARXIV_CATEGORIES:-}  # Optional: comma-separated categories
     
     volumes:
       - ./data:/app/data

@@ -26,6 +26,7 @@ class Config:
     max_papers: int
     phase: str  # "ingestion", "query", or "both"
     user_query: Optional[str] = None
+    arxiv_categories: Optional[list] = None  # Leave None for auto-search all categories
     
     # Paths
     data_dir: Path = Path("/app/data")
@@ -35,6 +36,10 @@ class Config:
     @classmethod
     def from_env(cls):
         """Load configuration from environment variables"""
+        # Parse categories from comma-separated string if provided
+        categories_str = os.getenv("ARXIV_CATEGORIES")
+        categories = categories_str.split(",") if categories_str else None
+        
         return cls(
             openai_api_key=os.getenv("OPENAI_API_KEY"),
             firecrawl_api_key=os.getenv("FIRECRAWL_API_KEY"),
@@ -46,5 +51,6 @@ class Config:
             search_topic=os.getenv("SEARCH_TOPIC", "Higgs Boson production in association with a single top quark"),
             max_papers=int(os.getenv("MAX_PAPERS", "10")),
             phase=os.getenv("PHASE", "both"),
-            user_query=os.getenv("USER_QUERY")
+            user_query=os.getenv("USER_QUERY"),
+            arxiv_categories=categories
         )

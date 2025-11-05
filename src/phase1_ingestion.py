@@ -37,14 +37,20 @@ class IngestionPipeline:
     
     async def search_arxiv(self) -> List[Dict]:
         """Search ArXiv using MCP server"""
+        # Build search arguments
+        search_args = {
+            "query": self.config.search_topic,
+            "max_results": self.config.max_papers
+        }
+        
+        # Only add categories if explicitly configured
+        if self.config.arxiv_categories:
+            search_args["categories"] = self.config.arxiv_categories
+        
         result = await self.mcp.call_tool(
             "arxiv",
             "search_papers",
-            {
-                "query": self.config.search_topic,
-                "max_results": self.config.max_papers,
-                "categories": ["cs.AI", "cs.CL", "cs.LG"]
-            }
+            search_args
         )
         
         # Parse the result (format depends on arxiv-mcp-server response)

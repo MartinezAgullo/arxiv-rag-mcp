@@ -40,7 +40,7 @@ async def main():
             query = QueryPipeline(mcp_manager, config)
             
             # Example query (can be modified or passed as argument)
-            user_query = config.user_query or "What are the latest techniques in LLM reasoning?"
+            user_query = config.user_query or "What is special about the interaction between the Higgs boson and the top quark?"
             
             answer = await query.run(user_query)
             print(f"\n✅ Phase 2 Complete")
