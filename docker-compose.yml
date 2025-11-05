@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  arxiv-rag-agent:
+    build: .
+    container_name: arxiv_rag_agent
+    environment:
+      # API Keys (set in .env file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - NOTION_TOKEN=${NOTION_TOKEN}
+      
+      # Pinecone Configuration
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      
+      # Notion Configuration
+      - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
+      
+      # Application Configuration
+      - SEARCH_TOPIC=${SEARCH_TOPIC:-"Large Language Model Reasoning"}
+      - MAX_PAPERS=${MAX_PAPERS:-10}
+      - PHASE=${PHASE:-"both"}  # ingestion, query, or both
+    
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+    
+    restart: unless-stopped
