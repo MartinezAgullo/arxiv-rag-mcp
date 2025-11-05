@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   arxiv-rag-agent:
     build: .

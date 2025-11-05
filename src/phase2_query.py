@@ -18,24 +18,30 @@ class QueryPipeline:
     async def run(self, user_query: str) -> str:
         """Execute the query pipeline"""
         
-        print(f"💭 User Query: {user_query}")
+        print(f"💭 User Query: {user_query}\n")
         
         # Step 1: Retrieve relevant chunks from Pinecone
         print("🔍 Retrieving relevant context from Pinecone...")
         context_chunks = await self.retrieve_context(user_query)
-        print(f"Retrieved {len(context_chunks)} relevant chunks")
+        print(f"   ✅ Retrieved {len(context_chunks)} relevant chunks\n")
         
         # Step 2: Generate answer using GPT-4
         print("🤖 Generating answer with GPT-4...")
         answer = await self.generate_answer(user_query, context_chunks)
+        print(f"   ✅ Answer generated ({len(answer)} chars)\n")
         
         # Step 3: Log to Notion
         print("📝 Logging interaction to Notion...")
-        await self.log_to_notion(user_query, context_chunks, answer)
+        try:
+            await self.log_to_notion(user_query, context_chunks, answer)
+            print("   ✅ Logged to Notion\n")
+        except Exception as e:
+            print(f"   ⚠️  Notion logging failed: {e}\n")
         
         # Step 4: Save answer locally
         print("💾 Saving answer to file...")
         await self.save_answer(answer)
+        print("   ✅ Saved to /app/outputs/answer.md\n")
         
         return answer
     
@@ -54,17 +60,28 @@ class QueryPipeline:
         )
         
         # Parse results
-        matches = json.loads(result.content[0].text) if result.content else []
-        return matches
+        matches = []
+        if hasattr(result, 'content') and result.content:
+            try:
+                content_text = result.content[0].text if isinstance(result.content, list) else str(result.content)
+                matches = json.loads(content_text) if isinstance(content_text, str) else []
+            except (json.JSONDecodeError, AttributeError):
+                matches = []
+        
+        return matches if isinstance(matches, list) else []
     
     async def generate_answer(self, query: str, context_chunks: List[Dict]) -> str:
         """Generate answer using GPT-4 with retrieved context"""
         
         # Format context
         context_text = "\n\n".join([
-            f"[Source: {c['metadata']['title']}]\n{c['text']}"
+            f"[Source: {c.get('metadata', {}).get('title', 'Unknown')}]\n{c.get('text', '')}"
             for c in context_chunks
+            if c.get('text')
         ])
+        
+        if not context_text:
+            return "I couldn't find relevant information in the database to answer your question."
         
         # Create prompt
         prompt = f"""You are a helpful AI assistant that answers questions based on academic papers about {self.config.search_topic}.
@@ -79,25 +96,29 @@ QUESTION: {query}
 Provide a concise, well-cited answer. Include paper titles when referencing information."""
         
         # Call GPT-4
-        response = self.client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a helpful research assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-            max_tokens=1000
-        )
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a helpful research assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1000
+            )
+            
+            answer = response.choices[0].message.content
+            return answer
         
-        answer = response.choices[0].message.content
-        return answer
+        except Exception as e:
+            return f"Error generating answer: {e}"
     
     async def log_to_notion(self, query: str, context: List[Dict], answer: str):
         """Log the interaction to Notion database"""
         
         # Format context for Notion
         context_summary = "\n".join([
-            f"- {c['metadata']['title']} (Chunk {c['metadata']['chunk_index']})"
+            f"- {c.get('metadata', {}).get('title', 'Unknown')} (Chunk {c.get('metadata', {}).get('chunk_index', 0)})"
             for c in context[:3]  # Top 3 sources
         ])
         
@@ -120,21 +141,22 @@ Provide a concise, well-cited answer. Include paper titles when referencing info
         """Save answer to local file using filesystem MCP"""
         
         markdown_content = f"""# Query Results
-        **Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+**Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+**Topic**: {self.config.search_topic}
 
-        ## Answer
+## Answer
 
-        {answer}
+{answer}
 
-        ---
-        *Generated by ArXiv RAG MCP Agent*
-        """
+---
+*Generated by ArXiv RAG MCP Agent*
+"""
         
         await self.mcp.call_tool(
             "filesystem",
             "write_file",
             {
-                "path": "/app/outputs/answer.md",
+                "path": "answer.md",  # Relative to allowed directory
                 "content": markdown_content
             }
         )

@@ -10,7 +10,7 @@ class MCPManager:
     def __init__(self, config):
         self.config = config
         self.sessions: Dict[str, ClientSession] = {}
-        self.clients = {}
+        self.stdio_contexts: Dict[str, Any] = {}  # Store context managers
         
         # Define MCP server configurations
         self.server_configs = {
@@ -30,8 +30,8 @@ class MCPManager:
                 "env": {"NOTION_TOKEN": config.notion_token}
             },
             "filesystem": {
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-filesystem", str(config.outputs_dir)],
+                "command": "mcp-server-filesystem",  # Use installed binary directly
+                "args": [str(config.outputs_dir)],
                 "env": {}
             }
         }
@@ -40,41 +40,75 @@ class MCPManager:
         """Connect to a specific MCP server"""
         server_config = self.server_configs[server_name]
         
-        # Create server parameters
-        server = StdioServerParameters(
-            command=server_config["command"],
-            args=server_config["args"],
-            env=server_config.get("env", {})
-        )
+        print(f"  📡 Connecting to {server_name}...", end=" ", flush=True)
         
-        # Connect using stdio client
-        stdio = stdio_client(server)
-        client, session = await stdio.__aenter__()
-        
-        self.clients[server_name] = (stdio, client)
-        self.sessions[server_name] = session
-        
-        # Initialize the session
-        await session.initialize()
-        
-        print(f"✓ Connected to {server_name} MCP server")
+        try:
+            # Create server parameters
+            server = StdioServerParameters(
+                command=server_config["command"],
+                args=server_config["args"],
+                env=server_config.get("env", {})
+            )
+            
+            # Create and enter the stdio context
+            stdio_context = stdio_client(server)
+            read_stream, write_stream = await stdio_context.__aenter__()
+            
+            # Store the context for later cleanup
+            self.stdio_contexts[server_name] = stdio_context
+            
+            # Create session
+            session = ClientSession(read_stream, write_stream)
+            
+            # Initialize with timeout
+            await asyncio.wait_for(session.initialize(), timeout=30)
+            
+            # Store session
+            self.sessions[server_name] = session
+            
+            print("✅")
+            
+        except asyncio.TimeoutError:
+            print(f"❌ (timeout)")
+            raise TimeoutError(f"Connection to {server_name} timed out after 30 seconds")
+        except Exception as e:
+            print(f"❌ ({str(e)[:50]})")
+            raise RuntimeError(f"Failed to connect to {server_name}: {e}")
     
     async def connect_all(self):
         """Connect to all MCP servers"""
-        tasks = [self.connect_server(name) for name in self.server_configs.keys()]
-        await asyncio.gather(*tasks)
+        print("🔌 Initializing MCP servers:\n")
+        
+        # Connect sequentially to avoid overwhelming the system
+        for server_name in self.server_configs.keys():
+            await self.connect_server(server_name)
+        
+        print("\n✅ All MCP servers connected successfully!\n")
     
-    async def call_tool(self, server_name: str, tool_name: str, arguments: Dict[str, Any]):
+    async def call_tool(self, server_name: str, tool_name: str, arguments: Dict[str, Any] = None):
         """Call a tool on a specific MCP server"""
         session = self.sessions.get(server_name)
         if not session:
             raise ValueError(f"Server {server_name} not connected")
         
-        result = await session.call_tool(tool_name, arguments=arguments)
-        return result
+        try:
+            result = await session.call_tool(tool_name, arguments=arguments or {})
+            return result
+        except Exception as e:
+            raise RuntimeError(f"Error calling {tool_name} on {server_name}: {e}")
     
     async def disconnect_all(self):
         """Disconnect from all MCP servers"""
-        for server_name, (stdio, _) in self.clients.items():
-            await stdio.__aexit__(None, None, None)
-            print(f"✓ Disconnected from {server_name}")
+        print("🔌 Disconnecting from MCP servers:\n")
+        
+        for server_name, stdio_context in self.stdio_contexts.items():
+            try:
+                print(f"  📡 Disconnecting from {server_name}...", end=" ", flush=True)
+                await stdio_context.__aexit__(None, None, None)
+                print("✅")
+            except Exception as e:
+                print(f"⚠️ (error: {str(e)[:30]})")
+        
+        self.sessions.clear()
+        self.stdio_contexts.clear()
+        print()

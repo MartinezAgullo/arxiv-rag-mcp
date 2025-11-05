@@ -120,15 +120,16 @@ touch .env
 
 ```bash
 # Build and run both phases
-docker-compose up
+docker compose build --no-cache
+docker compose up
 
 # Or run phases separately:
 
 # Phase 1 only (ingestion)
-docker-compose run --rm -e PHASE=ingestion arxiv-rag-agent
+docker compose run --rm -e PHASE=ingestion arxiv-rag-agent
 
 # Phase 2 only (query)
-docker-compose run --rm -e PHASE=query -e USER_QUERY="Your question here" arxiv-rag-agent
+docker compose run --rm -e PHASE=query -e USER_QUERY="Your question here" arxiv-rag-agent
 ```
 
 ### 4. View Results
@@ -138,7 +139,7 @@ docker-compose run --rm -e PHASE=query -e USER_QUERY="Your question here" arxiv-
 cat outputs/answer.md
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ---

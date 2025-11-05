@@ -9,8 +9,11 @@ RUN apt-get update && apt-get install -y \
     npm \
     && rm -rf /var/lib/apt/lists/*
 
+# Configure npm for global installations  
+RUN npm config set prefix /usr/local
+
 # Install uv (Python package manager)
-RUN curl -fsSL https://astral.sh/uv/install.sh | bash
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.cargo/bin:$PATH"
 
 # Set working directory
@@ -20,20 +23,21 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install MCP servers via npx (cached for faster rebuilds)
-RUN npx -y @pinecone-database/mcp --version || true
-RUN npx -y @notionhq/notion-mcp-server --version || true
-RUN npx -y @modelcontextprotocol/server-filesystem --version || true
-RUN uv tool install arxiv-mcp-server || true
 
-# Create necessary directories
+# Install MCP servers GLOBALLY using npm and uv (no npx)
+RUN npm install -g @modelcontextprotocol/server-filesystem@latest
+RUN npm install -g @pinecone-database/mcp@latest
+RUN npm install -g @notionhq/notion-mcp-server@latest
+RUN uv tool install arxiv-mcp-server
+
+# Create directories
 RUN mkdir -p /app/data/arxiv_papers /app/outputs /app/logs
 
 # Copy application code
 COPY . .
 
-# Set environment variables
+# Environment
 ENV PYTHONUNBUFFERED=1
+ENV PATH="/root/.cargo/bin:/usr/local/bin:$PATH"
 
-# Run the agent
 CMD ["python", "main.py"]
